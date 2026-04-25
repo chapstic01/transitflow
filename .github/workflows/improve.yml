@@ -1,0 +1,43 @@
+name: Auto-Improve
+
+on:
+  schedule:
+    # Run every Sunday at 02:00 UTC
+    - cron: "0 2 * * 0"
+  workflow_dispatch:
+    inputs:
+      focus:
+        description: "Feature area to improve (e.g. 'real-time stops', 'premium tier', 'offline PWA')"
+        required: false
+        default: "general improvements"
+
+jobs:
+  improve:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run checks
+        run: |
+          npm run type-check
+          npm run build
+        env:
+          NEXTAUTH_SECRET: ci-secret
+          NEXTAUTH_URL: http://localhost:3000
+
+      - name: Report status
+        run: |
+          echo "TransitFlow health check passed at $(date)"
+          echo "Focus area: ${{ github.event.inputs.focus || 'scheduled check' }}"
